@@ -1,0 +1,41 @@
+@startuml C4_Container
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Диаграмма контейнеров C4 - Банк Стандарт
+
+Person(client, "Клиент", "Пользователь банковских услуг")
+
+System_Boundary(internet_bank, "Интернет-банк") {
+    Container(web_app, "Веб-приложение", "ASP.NET MVC 4.5", "Предоставляет интерфейс для работы с банковскими услугами")
+    Container(deposit_module, "Модуль депозитов", ".NET Core", "Микросервис для работы с депозитами")
+    Container(auth_service, "Сервис авторизации", ".NET Core", "Управление аутентификацией и авторизацией")
+    Container(rate_cache, "Кеш ставок", "Redis", "Кеширование актуальных ставок по депозитам")
+}
+
+System_Boundary(abs, "АБС") {
+    Container(contract_module, "Модуль договоров депозитов", "PL/SQL", "Управление договорами депозитов")
+    Container(integration_layer, "Интеграционный слой", "Kafka Consumer", "Обработка событий из Kafka")
+    Container(notification_service, "Сервис уведомлений", "PL/SQL", "Отправка уведомлений")
+}
+
+System_Boundary(call_center, "Кол-центр") {
+    Container(cc_system, "Система кол-центра", "React.js + Java Spring Boot", "Обработка обращений клиентов")
+}
+
+System_Boundary(sms, "СМС-шлюз") {
+    Container(sms_gateway, "СМС-шлюз", "Внешний сервис", "Отправка СМС-уведомлений")
+}
+
+Rel(client, web_app, "Использует", "HTTPS")
+Rel(web_app, deposit_module, "Использует", "HTTP")
+Rel(web_app, auth_service, "Использует", "HTTP")
+Rel(deposit_module, rate_cache, "Использует", "Redis")
+Rel(deposit_module, contract_module, "Отправляет события", "Kafka")
+Rel(integration_layer, contract_module, "Обновляет", "PL/SQL")
+Rel(contract_module, notification_service, "Использует", "PL/SQL")
+Rel(notification_service, sms_gateway, "Отправляет СМС", "HTTP")
+Rel(web_app, cc_system, "Интегрируется", "REST API")
+
+@enduml

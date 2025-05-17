@@ -1,0 +1,62 @@
+@startuml C4_Containers
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Диаграмма контейнеров C4: Интеграция кол-центров с системой ставок
+
+Person(manager, "Менеджер бэк-офиса", "Загружает Excel-файлы с ставками")
+
+System_Boundary(abses, "АБС Банка") {
+    Container(abses_core, "АБС (Oracle + PL/SQL)", "Oracle Database", "Хранилище договоров и ставок")
+    Container(rate_service, "Сервис ставок", ".NET", "Обработка и публикация ставок") {
+        Component(excel_parser, "Парсер Excel", "Преобразует XLSX в JSON")
+        Component(kafka_producer, "Kafka Producer", "Отправка в топик rates-updates")
+        Component(sftp_exporter, "SFTP Exporter", "Генерация JSON + PGP-шифрование")
+    }
+    ContainerDb(rate_service_db, "Кеш ставок", "Redis", "Кеширование актуальных данных")
+}
+
+System_Boundary(infra, "Инфраструктура") {
+    Container(kafka, "Apache Kafka", "Брокер сообщений", "Топики: rates-updates")
+    Container(sftp_server, "SFTP-сервер", "OpenSSH", "Хранение зашифрованных файлов")
+}
+
+System_Boundary(callcenters, "Кол-центры") {
+    Container(internal_cc, "Кол-центр банка", "Java Spring Boot", "CRM система") {
+        Component(kafka_consumer, "Kafka Consumer", "Подписка на rates-updates")
+        Component(rate_cache, "Кеш ставок", "Redis", "Актуальные данные")
+    }
+
+    Container(partner_cc, "Партнёрский кол-центр", "Внешняя CRM", "Загрузка через SFTP") {
+        Component(sftp_client, "SFTP Client", "Автоматическая загрузка")
+        Component(file_decryptor, "PGP Decryptor", "Расшифровка файлов")
+    }
+}
+
+' Connections
+Rel(manager, rate_service, "Загружает XLSX", "HTTP/Excel Upload")
+Rel(rate_service, abses_core, "Чтение/запись данных", "JDBC")
+Rel(rate_service, kafka, "Публикация ставок", "Kafka Protocol")
+Rel(kafka, internal_cc, "Стриминг обновлений", "Kafka Protocol (SSL)")
+Rel(rate_service, sftp_server, "Отправка файлов", "SFTP (PGP)")
+
+Rel(sftp_server, partner_cc, "Скачивание файлов", "SFTP (PGP)")
+Rel(partner_cc, file_decryptor, "Обработка файлов", "PGP/GnuPG")
+
+
+
+note right of kafka
+    **Характеристики:**
+    - Retention: 7 дней
+    - Replication: 3 узла
+end note
+
+note bottom of sftp_server
+    **Безопасность:**
+    - PGP-шифрование
+    - Ключи в HashiCorp Vault
+    - Ротация каждые 90 дней
+end note
+
+@enduml

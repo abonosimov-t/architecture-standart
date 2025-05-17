@@ -1,0 +1,21 @@
+@startuml C4_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Диаграмма контекста: Интеграция кол-центров с системой актуальных ставок
+
+Person(back_office, "Бэк-офис", "Менеджер бэк-офиса")
+System(abs, "АБС", "Система актуальных ставок")
+System(kafka, "Kafka", "Брокер сообщений")
+System(sftp, "SFTP-сервер", "Сервер для передачи файлов")
+System(internal_cc, "Внутренний кол-центр", "CRM кол-центра банка")
+System(partner_cc, "Партнёрский кол-центр", "CRM партнёрского кол-центра")
+
+Rel(back_office, abs, "Загружает Excel-файл", "HTTP")
+Rel(abs, kafka, "Публикует ставки", "Kafka Producer")
+Rel(kafka, internal_cc, "Получает ставки", "Kafka Consumer")
+Rel(abs, sftp, "Отправляет JSON-файл", "SFTP + PGP")
+Rel(sftp, partner_cc, "Загружает файл", "SFTP")
+
+@enduml

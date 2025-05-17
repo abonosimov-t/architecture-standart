@@ -1,0 +1,28 @@
+@startuml C4 Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Диаграмма контекста C4 - Банк Стандарт
+
+Person(client, "Клиент банка", "Использует сайт и интернет-банк")
+Person(manager, "Менеджер банка", "Использует АБС")
+Person(cc_operator, "Сотрудник кол-центра", "Использует систему кол-центра")
+
+System(site, "Сайт", "Интернет-сайт банка Стандарт")
+System(internet_bank, "Интернет-банк", "Онлайн-банкинг банка Стандарт")
+System(abs, "АБС", "Автоматизированная банковская система")
+System(cc_system, "Кол-центр", "Обратные звонки по заявке")
+System(sms_gateway, "СМС-шлюз", "Подтверждение заявки")
+
+Rel(client, site, "Заявка на депозит")
+Rel(client, internet_bank, "Заявка на депозит")
+Rel(site, abs, "Kafka")
+Rel(internet_bank, abs, "Kafka")
+Rel(site, cc_system, "REST API")
+Rel(internet_bank, sms_gateway, "Интеграция")
+Rel(cc_system, abs, "Интеграция")
+Rel(manager, abs, "Использует")
+Rel(cc_operator, cc_system, "Использует")
+
+@enduml
